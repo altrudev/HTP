@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ddc:htp:0.2:trust-policy",
+  "title": "DDC HTP v0.2 Ingress Trust Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sources"],
+  "properties": {
+    "sources": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "type": "string", "minLength": 1 },
+      "additionalProperties": {
+        "enum": ["human", "assistant", "tool", "system", "policy"]
+      }
+    }
+  }
+}

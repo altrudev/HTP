@@ -1,6 +1,6 @@
 # HTP Roadmap
 
-HTP is being separated from the DDC development repository into an independent public protocol project. The immediate goal is to preserve the already-validated HTP behavior while creating a clean public implementation boundary.
+HTP is now an independent public protocol/reference project. The immediate extraction goal is complete: HTP builds and verifies without access to private DDC/Crystalline runtime internals while preserving its historical wire formats and security model.
 
 ## Phase 1 — Repository foundation
 
@@ -13,56 +13,76 @@ Status: **complete**
 - governance/versioning policy
 - branding/trademark boundary
 - issue and pull-request templates
-- changelog
+- changelog and roadmap
 
 ## Phase 2 — Controlled implementation migration
 
-- migrate HTP 0.1 and 0.2 protocol modules without semantic redesign;
-- preserve validated schemas and adversarial tests;
-- preserve the Human Translator projector;
-- retain the `ddc-htp-live` reference CLI behavior;
-- add SPDX license headers to migrated source files;
-- remove repository-local assumptions that require access to private DDC development infrastructure;
-- expose only the stable DDC interface HTP actually needs;
-- reproduce all previous HTP validation results in this repository before declaring migration complete.
+Status: **complete**
+
+- HTP 0.1 semantic transaction model migrated;
+- HTP 0.2 live provenance/signature model migrated;
+- historical wire identifiers preserved;
+- schemas and adversarial tests preserved;
+- Human Translator projector migrated;
+- standalone `htp-translate` and `htp-live` CLIs established;
+- SPDX headers added to migrated source;
+- private repository assumptions removed from canonical HTP verification.
 
 ## Phase 3 — Independent-build boundary
 
-HTP must become buildable and testable by an external developer using only public dependencies.
+Status: **complete for HTP 0.2 reference implementation**
 
-Required gates:
+Current gates:
 
-- fresh clone builds without Altru.dev private infrastructure;
-- schemas validate independently;
-- reference tests and adversarial tests pass;
-- signed public/private witnesses verify independently;
-- browser projector remains local and free of mandatory remote runtime dependencies;
-- DDC integration is through a documented public interface rather than copied internal implementation details.
+- public dependencies only;
+- independently parseable schemas;
+- reference and adversarial tests;
+- independently verifiable signed public/private witnesses;
+- local browser projector without mandatory remote runtime dependencies;
+- strict architecture-boundary CI preventing private Crystalline/DDC closure internals from entering the public reference code;
+- reproducible Cargo lockfile;
+- stable Rust CI plus Rust 1.78 shipped-target compatibility.
+
+HTP retains the eight-dimensional DDC-derived vocabulary but performs its canonical public change classification through transparent HTP rules. Full Crystalline/DDC analysis remains separate and non-normative to HTP witness validity.
 
 ## Phase 4 — Interoperability package
+
+Next priority.
 
 - canonical portable test vectors;
 - provider-neutral live event fixtures;
 - conformance runner;
 - known-good signed witness examples;
 - failure vectors for authority escalation, fabricated evidence, replay, lineage substitution and publication leakage;
+- canonical serialization rules suitable for independent implementations;
 - implementation guidance for non-Rust clients.
 
-## Phase 5 — Provider adapters
+## Phase 5 — Runtime and provider adapters
 
-Adapters should translate observable provider events into HTP without changing core protocol semantics.
+Adapters should translate only observable provider/runtime events into HTP without changing core protocol semantics.
 
-Candidates include:
+Priorities:
 
-- generic JSON/JSONL adapter;
+- generic local JSON/JSONL event bridge;
 - local LLM adapter;
 - hosted model API adapter examples;
-- agent/tool-execution adapter;
-- multi-agent aggregation experiments.
+- trusted tool-execution adapter;
+- browser/local daemon live stream into the Human Translator;
+- multi-agent aggregation experiments after single-session semantics stabilize.
 
-Vendor-specific fields must remain isolated from portable HTP semantics.
+Vendor-specific fields must remain isolated from portable HTP semantics. A model must never be allowed to choose its own trusted actor identity.
 
-## Phase 6 — HTP 1.0 readiness
+## Phase 6 — Key and publication lifecycle
+
+- signer key rotation;
+- revocation records;
+- local key-store guidance;
+- backup/restore procedure;
+- deterministic publication-policy manifests;
+- sensitivity labels and secret scanning before public publication;
+- redaction linkage and compatibility rules.
+
+## Phase 7 — HTP 1.0 readiness
 
 HTP 1.0 is gated by interoperability and security rather than feature count.
 
@@ -73,16 +93,17 @@ Minimum objectives:
 - stable publication/redaction semantics;
 - formal extension/version-negotiation mechanism;
 - conformance suite;
-- independent implementation validation;
+- at least one independent implementation outside the Rust reference implementation;
 - adversarial security review;
 - documented key-rotation/revocation strategy;
-- stable public DDC dependency/interface;
+- documented optional DDC integration boundary;
 - no hidden dependency on Altru.dev-hosted services.
 
-## Not on the critical path
+## Research directions
 
 The following are research directions rather than prerequisites for the next release:
 
+- per-source cryptographic attestation;
 - selective-disclosure / zero-knowledge publication;
 - distributed event ordering;
 - multi-party witness consensus;

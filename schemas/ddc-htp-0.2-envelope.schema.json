@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ddc:htp:0.2:envelope",
+  "title": "DDC HTP v0.2 Signed Witness Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "signature_version", "algorithm", "profile", "key_id", "public_key_hex",
+    "witness_hash", "stream_root", "content_hash", "signed_payload_hex", "signature_hex", "content"
+  ],
+  "properties": {
+    "signature_version": { "const": "ddc-htp-signature/0.2" },
+    "algorithm": { "const": "ed25519" },
+    "profile": { "enum": ["public", "private"] },
+    "key_id": { "type": "string", "minLength": 1 },
+    "public_key_hex": { "$ref": "#/$defs/key" },
+    "witness_hash": { "$ref": "#/$defs/hash" },
+    "stream_root": { "$ref": "#/$defs/hash" },
+    "content_hash": { "$ref": "#/$defs/hash" },
+    "signed_payload_hex": { "type": "string", "pattern": "^(?:[0-9a-f]{2})+$" },
+    "signature_hex": { "type": "string", "pattern": "^[0-9a-f]{128}$" },
+    "content": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "profile": { "const": "private" } }, "required": ["profile"] },
+      "then": { "properties": { "content": { "$ref": "ddc-htp-0.2-live-snapshot.schema.json" } } }
+    },
+    {
+      "if": { "properties": { "profile": { "const": "public" } }, "required": ["profile"] },
+      "then": { "properties": { "content": { "$ref": "#/$defs/publicContent" } } }
+    }
+  ],
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "key": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "dimension": {
+      "enum": ["semantic", "authority", "state", "resource", "security", "physical", "frequency", "lineage"]
+    },
+    "publicNeed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objective", "constraint_count"],
+      "properties": {
+        "objective": { "type": "string", "minLength": 1 },
+        "constraint_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "publicProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interpretation", "ambiguities", "assumption_count"],
+      "properties": {
+        "interpretation": { "type": "string", "minLength": 1 },
+        "ambiguities": { "type": "array", "items": { "type": "string" } },
+        "assumption_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "publicEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "statement", "status", "source_digest"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["user_statement", "source", "tool_result", "system_observation", "calculation"] },
+        "statement": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["established", "inferred", "unknown", "contradicted"] },
+        "source_digest": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "publicAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "requires", "status", "affected_dimensions", "reversible"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "requires": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "status": { "enum": ["proposed", "authorized", "executed", "failed", "skipped"] },
+        "affected_dimensions": { "type": "array", "items": { "$ref": "#/$defs/dimension" }, "uniqueItems": true },
+        "reversible": { "type": ["boolean", "null"] }
+      }
+    },
+    "publicReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id_digest", "actor", "event_type", "payload_hash", "stream_root"],
+      "properties": {
+        "event_id_digest": { "$ref": "#/$defs/hash" },
+        "actor": { "enum": ["human", "assistant", "tool", "system", "policy"] },
+        "event_type": {
+          "enum": [
+            "human_message", "ai_projection", "authority_required", "authority_grant",
+            "authority_deny", "authority_revoke", "evidence", "action", "fracture", "repair",
+            "ai_response"
+          ]
+        },
+        "payload_hash": { "$ref": "#/$defs/hash" },
+        "stream_root": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "redactionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_statement", "constraints", "projection_assumptions", "evidence_sources",
+        "event_source_ids", "action_effect_boundaries", "resource_deltas"
+      ],
+      "properties": {
+        "human_statement": { "const": true },
+        "constraints": { "const": true },
+        "projection_assumptions": { "const": true },
+        "evidence_sources": { "const": "sha256_digest_only" },
+        "event_source_ids": { "const": true },
+        "action_effect_boundaries": { "const": true },
+        "resource_deltas": { "const": true }
+      }
+    },
+    "publicContent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_version", "profile", "transaction_protocol_version", "conversation_id", "turn_id",
+        "predecessor_witness", "witness_hash", "stream_root", "state", "need", "projection", "authority",
+        "evidence", "actions", "witness", "fractures", "repairs", "change", "event_receipts", "redacted"
+      ],
+      "properties": {
+        "protocol_version": { "const": "ddc-htp/0.2" },
+        "profile": { "const": "public" },
+        "transaction_protocol_version": { "const": "ddc-htp/0.1" },
+        "conversation_id": { "type": "string", "minLength": 1 },
+        "turn_id": { "type": "string", "minLength": 1 },
+        "predecessor_witness": { "type": ["string", "null"] },
+        "witness_hash": { "$ref": "#/$defs/hash" },
+        "stream_root": { "$ref": "#/$defs/hash" },
+        "state": { "enum": ["open", "awaiting_authority", "blocked", "fractured", "closed"] },
+        "need": { "$ref": "#/$defs/publicNeed" },
+        "projection": { "$ref": "#/$defs/publicProjection" },
+        "authority": { "$ref": "ddc-htp-0.1.schema.json#/$defs/authority" },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/publicEvidence" } },
+        "actions": { "type": "array", "items": { "$ref": "#/$defs/publicAction" } },
+        "witness": { "$ref": "ddc-htp-0.1.schema.json#/$defs/witness" },
+        "fractures": { "type": "array", "items": { "$ref": "ddc-htp-0.1.schema.json#/$defs/fracture" } },
+        "repairs": { "type": "array", "items": { "$ref": "ddc-htp-0.1.schema.json#/$defs/repair" } },
+        "change": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "ddc-htp-0.2-live-snapshot.schema.json#/$defs/change" }
+          ]
+        },
+        "event_receipts": { "type": "array", "items": { "$ref": "#/$defs/publicReceipt" } },
+        "redacted": { "$ref": "#/$defs/redactionRecord" }
+      }
+    }
+  }
+}

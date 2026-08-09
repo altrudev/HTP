@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ddc:htp:0.2:live-snapshot",
+  "title": "DDC HTP v0.2 Live Witness Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol_version", "transaction", "event_receipts", "stream_root", "change"],
+  "properties": {
+    "protocol_version": { "const": "ddc-htp/0.2" },
+    "transaction": { "$ref": "ddc-htp-0.1.schema.json" },
+    "event_receipts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/eventReceipt" }
+    },
+    "stream_root": { "$ref": "#/$defs/hash" },
+    "change": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/change" }
+      ]
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "stringSet": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "dimension": {
+      "enum": ["semantic", "authority", "state", "resource", "security", "physical", "frequency", "lineage"]
+    },
+    "eventReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "source_id", "actor", "event_type", "payload_hash", "stream_root"],
+      "properties": {
+        "event_id": { "type": "string", "minLength": 1 },
+        "source_id": { "type": "string", "minLength": 1 },
+        "actor": { "enum": ["human", "assistant", "tool", "system", "policy"] },
+        "event_type": {
+          "enum": [
+            "human_message", "ai_projection", "authority_required", "authority_grant",
+            "authority_deny", "authority_revoke", "evidence", "action", "fracture", "repair",
+            "ai_response"
+          ]
+        },
+        "payload_hash": { "$ref": "#/$defs/hash" },
+        "stream_root": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "changedDimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "semantic": { "$ref": "#/$defs/stringSet" },
+        "authority": { "$ref": "#/$defs/stringSet" },
+        "state": { "$ref": "#/$defs/stringSet" },
+        "resource": { "$ref": "#/$defs/stringSet" },
+        "security": { "$ref": "#/$defs/stringSet" },
+        "physical": { "$ref": "#/$defs/stringSet" },
+        "frequency": { "$ref": "#/$defs/stringSet" },
+        "lineage": { "$ref": "#/$defs/stringSet" }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "conclusion_changed", "previous_conclusion", "current_conclusion", "authority_added",
+        "authority_removed", "new_evidence", "new_fractures", "resolved_fractures",
+        "changed_dimensions", "conserved_dimensions"
+      ],
+      "properties": {
+        "conclusion_changed": { "type": "boolean" },
+        "previous_conclusion": { "type": "string" },
+        "current_conclusion": { "type": "string" },
+        "authority_added": { "$ref": "#/$defs/stringSet" },
+        "authority_removed": { "$ref": "#/$defs/stringSet" },
+        "new_evidence": { "$ref": "#/$defs/stringSet" },
+        "new_fractures": { "$ref": "#/$defs/stringSet" },
+        "resolved_fractures": { "$ref": "#/$defs/stringSet" },
+        "changed_dimensions": { "$ref": "#/$defs/changedDimensions" },
+        "conserved_dimensions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dimension" },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
