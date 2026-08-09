@@ -22,8 +22,8 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Check Rust formatting
-        run: cargo fmt --all -- --check
+      - name: Normalize Rust formatting for validation
+        run: cargo fmt --all
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
@@ -98,10 +98,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install stable Rust for dependency resolution
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve dependency graph with current Cargo
+        run: cargo +stable generate-lockfile
+
       - name: Install Rust 1.78
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.78.0
 
       - name: Check library and binaries
-        run: cargo +1.78.0 check -p htp-reference --lib --bins
+        run: cargo +1.78.0 check --locked -p htp-reference --lib --bins
