@@ -86,6 +86,7 @@ The names are historical wire identifiers. They do **not** mean the public HTP i
 /schemas/                JSON wire schemas
 /reference/rust/         Rust reference implementation
 /apps/human-translator/  zero-dependency browser projector
+/examples/               executable provider-neutral examples
 /.github/workflows/      independent build and security-boundary gates
 ```
 
@@ -94,8 +95,8 @@ The names are historical wire identifiers. They do **not** mean the public HTP i
 Requirements: Rust 1.78 or newer for shipped library/binary targets. Stable Rust is used for the complete test suite.
 
 ```bash
-cargo test --workspace --all-targets
-cargo build --workspace --release
+cargo test --workspace --all-targets --locked
+cargo build --workspace --release --locked
 ```
 
 The release build produces:
@@ -103,17 +104,29 @@ The release build produces:
 - `htp-translate` — validate/project canonical transactions;
 - `htp-live` — ingest a live JSONL event stream and emit witnesses.
 
+### Run the included live example
+
+```bash
+target/release/htp-live \
+  --trust-policy examples/trust-policy.json \
+  --profile public \
+  --unsigned \
+  examples/events.jsonl
+```
+
+The example deliberately requests `system.install` authority but never grants or executes it, so the emitted public witness remains `awaiting_authority`.
+
 ### Translate a transaction
 
 ```bash
-cargo run -p htp-reference --bin htp-translate -- \
+cargo run --locked -p htp-reference --bin htp-translate -- \
   --level plain transaction.json
 ```
 
 Compare a successor with its predecessor:
 
 ```bash
-cargo run -p htp-reference --bin htp-translate -- \
+cargo run --locked -p htp-reference --bin htp-translate -- \
   --level expert \
   --previous previous.json \
   current.json
@@ -122,11 +135,11 @@ cargo run -p htp-reference --bin htp-translate -- \
 ### Live unsigned development witness
 
 ```bash
-cargo run -p htp-reference --bin htp-live -- \
-  --trust-policy trust-policy.json \
+cargo run --locked -p htp-reference --bin htp-live -- \
+  --trust-policy examples/trust-policy.json \
   --profile public \
   --unsigned \
-  events.jsonl
+  examples/events.jsonl
 ```
 
 ### Signed witness
@@ -136,11 +149,11 @@ The reference CLI accepts a 32-byte Ed25519 private seed as 64 hexadecimal chara
 ```bash
 export HTP_SIGNING_KEY_HEX='<64 hexadecimal characters>'
 
-cargo run -p htp-reference --bin htp-live -- \
-  --trust-policy trust-policy.json \
+cargo run --locked -p htp-reference --bin htp-live -- \
+  --trust-policy examples/trust-policy.json \
   --profile public \
   --key-id local-htp-signer \
-  events.jsonl
+  examples/events.jsonl
 ```
 
 For migration compatibility, `DDC_HTP_SIGNING_KEY_HEX` is also accepted.
