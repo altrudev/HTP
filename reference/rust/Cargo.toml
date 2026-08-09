@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "htp-reference"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.78"
+description = "Rust reference implementation of the Human Translation Protocol"
+license = "Apache-2.0"
+repository = "https://github.com/altrudev/HTP"
+publish = false
+
+[[bin]]
+name = "htp-translate"
+path = "src/bin/htp_translate.rs"
+
+[[bin]]
+name = "htp-live"
+path = "src/bin/htp_live.rs"
+
+[dependencies]
+ed25519-dalek = "=2.1.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+zeroize = "=1.8.1"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"
