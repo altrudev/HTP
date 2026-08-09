@@ -97,7 +97,8 @@ fn process_stream<R: BufRead>(
 ) -> Result<(), String> {
     for (index, line) in reader.lines().enumerate() {
         let line_number = index + 1;
-        let line = line.map_err(|error| format!("cannot read event line {line_number}: {error}"))?;
+        let line =
+            line.map_err(|error| format!("cannot read event line {line_number}: {error}"))?;
         if line.trim().is_empty() || line.trim_start().starts_with('#') {
             continue;
         }
@@ -144,10 +145,15 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Cli, String> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--trust-policy" => {
-                trust_policy = Some(args.next().ok_or_else(|| "--trust-policy requires a JSON path".to_string())?);
+                trust_policy = Some(
+                    args.next()
+                        .ok_or_else(|| "--trust-policy requires a JSON path".to_string())?,
+                );
             }
             "--profile" => {
-                let value = args.next().ok_or_else(|| "--profile requires public or private".to_string())?;
+                let value = args
+                    .next()
+                    .ok_or_else(|| "--profile requires public or private".to_string())?;
                 profile = match value.as_str() {
                     "public" => PublicationProfile::Public,
                     "private" => PublicationProfile::Private,
@@ -155,14 +161,18 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Cli, String> {
                 };
             }
             "--key-id" => {
-                key_id = args.next().ok_or_else(|| "--key-id requires a value".to_string())?;
+                key_id = args
+                    .next()
+                    .ok_or_else(|| "--key-id requires a value".to_string())?;
             }
             "--unsigned" => unsigned = true,
             "-h" | "--help" => {
                 print_help();
                 process::exit(0);
             }
-            value if value.starts_with('-') && value != "-" => return Err(format!("unknown option {value}")),
+            value if value.starts_with('-') && value != "-" => {
+                return Err(format!("unknown option {value}"))
+            }
             value => {
                 if input.replace(value.to_string()).is_some() {
                     return Err("only one event stream path may be supplied".to_string());

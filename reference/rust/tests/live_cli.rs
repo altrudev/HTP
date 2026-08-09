@@ -43,10 +43,21 @@ fn fixture() -> (tempfile::TempDir, String, String) {
 fn unsigned_cli_emits_one_public_live_witness() {
     let (_dir, policy, events) = fixture();
     let output = Command::new(env!("CARGO_BIN_EXE_htp-live"))
-        .args(["--trust-policy", &policy, "--profile", "public", "--unsigned", &events])
+        .args([
+            "--trust-policy",
+            &policy,
+            "--profile",
+            "public",
+            "--unsigned",
+            &events,
+        ])
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let stdout = String::from_utf8(output.stdout).unwrap();
     let lines: Vec<_> = stdout.lines().collect();
     assert_eq!(lines.len(), 1);
@@ -54,18 +65,33 @@ fn unsigned_cli_emits_one_public_live_witness() {
     assert_eq!(value["unsigned"], true);
     assert_eq!(value["profile"], "public");
     assert_eq!(value["content"]["protocol_version"], "ddc-htp/0.2");
-    assert_eq!(value["content"]["witness"]["conclusion"], "The observed OS is compatible");
+    assert_eq!(
+        value["content"]["witness"]["conclusion"],
+        "The observed OS is compatible"
+    );
 }
 
 #[test]
 fn signed_cli_emits_a_verifiable_envelope() {
     let (_dir, policy, events) = fixture();
     let output = Command::new(env!("CARGO_BIN_EXE_htp-live"))
-        .args(["--trust-policy", &policy, "--profile", "public", "--key-id", "cli-test", &events])
+        .args([
+            "--trust-policy",
+            &policy,
+            "--profile",
+            "public",
+            "--key-id",
+            "cli-test",
+            &events,
+        ])
         .env("HTP_SIGNING_KEY_HEX", SECRET)
         .output()
         .unwrap();
-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
     let first_line = output.stdout.split(|byte| *byte == b'\n').next().unwrap();
     let envelope: SignedWitnessEnvelope = serde_json::from_slice(first_line).unwrap();
     assert_eq!(envelope.key_id, "cli-test");

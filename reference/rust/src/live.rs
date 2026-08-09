@@ -237,7 +237,10 @@ impl LiveConversationAssembler {
         self.active.is_some()
     }
 
-    pub fn ingest(&mut self, event: ConversationEvent) -> Result<Option<LiveWitnessSnapshot>, IngestError> {
+    pub fn ingest(
+        &mut self,
+        event: ConversationEvent,
+    ) -> Result<Option<LiveWitnessSnapshot>, IngestError> {
         self.preflight(&event)?;
 
         let payload_hash = hash_json(&event.payload);
@@ -268,27 +271,45 @@ impl LiveConversationAssembler {
 
     fn preflight(&self, event: &ConversationEvent) -> Result<(), IngestError> {
         if event.event_id.trim().is_empty() {
-            return Err(IngestError::new("missing_event_id", "event_id must not be empty", Some(event)));
+            return Err(IngestError::new(
+                "missing_event_id",
+                "event_id must not be empty",
+                Some(event),
+            ));
         }
         if self.seen_event_ids.contains(&event.event_id) {
-            return Err(IngestError::new("event_replay", "event_id has already been accepted", Some(event)));
+            return Err(IngestError::new(
+                "event_replay",
+                "event_id has already been accepted",
+                Some(event),
+            ));
         }
         if event.source_id.trim().is_empty() {
-            return Err(IngestError::new("missing_source_id", "source_id must not be empty", Some(event)));
+            return Err(IngestError::new(
+                "missing_source_id",
+                "source_id must not be empty",
+                Some(event),
+            ));
         }
         match self.policy.sources.get(&event.source_id) {
             Some(actor) if actor == &event.actor => {}
             Some(actor) => {
                 return Err(IngestError::new(
                     "source_actor_mismatch",
-                    format!("trusted source {} is registered as {:?}, not {:?}", event.source_id, actor, event.actor),
+                    format!(
+                        "trusted source {} is registered as {:?}, not {:?}",
+                        event.source_id, actor, event.actor
+                    ),
                     Some(event),
                 ));
             }
             None => {
                 return Err(IngestError::new(
                     "untrusted_source",
-                    format!("source {} is not present in the ingress trust policy", event.source_id),
+                    format!(
+                        "source {} is not present in the ingress trust policy",
+                        event.source_id
+                    ),
                     Some(event),
                 ));
             }
@@ -298,7 +319,10 @@ impl LiveConversationAssembler {
             if conversation_id != &event.conversation_id {
                 return Err(IngestError::new(
                     "conversation_mismatch",
-                    format!("assembler is bound to conversation {conversation_id}, got {}", event.conversation_id),
+                    format!(
+                        "assembler is bound to conversation {conversation_id}, got {}",
+                        event.conversation_id
+                    ),
                     Some(event),
                 ));
             }
@@ -353,7 +377,9 @@ impl LiveConversationAssembler {
                 EvidenceKind::UserStatement => event.actor == EventActor::Human,
                 EvidenceKind::ToolResult => event.actor == EventActor::Tool,
                 EvidenceKind::SystemObservation => event.actor == EventActor::System,
-                EvidenceKind::Source => matches!(event.actor, EventActor::Tool | EventActor::System),
+                EvidenceKind::Source => {
+                    matches!(event.actor, EventActor::Tool | EventActor::System)
+                }
                 EvidenceKind::Calculation => matches!(
                     event.actor,
                     EventActor::Assistant | EventActor::Tool | EventActor::System
@@ -393,7 +419,11 @@ impl LiveConversationAssembler {
         };
         Err(IngestError::new(
             code,
-            format!("actor {:?} may not emit {} events", event.actor, event.payload.event_type()),
+            format!(
+                "actor {:?} may not emit {} events",
+                event.actor,
+                event.payload.event_type()
+            ),
             Some(event),
         ))
     }
@@ -422,7 +452,9 @@ impl LiveConversationAssembler {
                     ));
                 }
             }
-            ConversationEventPayload::Fracture { id, evidence_ids, .. } => {
+            ConversationEventPayload::Fracture {
+                id, evidence_ids, ..
+            } => {
                 if active.fractures.iter().any(|item| &item.id == id) {
                     return Err(IngestError::new(
                         "duplicate_fracture_id",
@@ -432,7 +464,11 @@ impl LiveConversationAssembler {
                 }
                 self.ensure_evidence_exists(active, evidence_ids, event)?;
             }
-            ConversationEventPayload::Repair { fracture_id, evidence_ids, .. } => {
+            ConversationEventPayload::Repair {
+                fracture_id,
+                evidence_ids,
+                ..
+            } => {
                 if !active.fractures.iter().any(|item| &item.id == fracture_id) {
                     return Err(IngestError::new(
                         "repair_without_fracture",
@@ -442,9 +478,14 @@ impl LiveConversationAssembler {
                 }
                 self.ensure_evidence_exists(active, evidence_ids, event)?;
             }
-            ConversationEventPayload::AiResponse { evidence_ids, action_ids, .. } => {
+            ConversationEventPayload::AiResponse {
+                evidence_ids,
+                action_ids,
+                ..
+            } => {
                 self.ensure_evidence_exists(active, evidence_ids, event)?;
-                let known_actions: BTreeSet<_> = active.actions.iter().map(|item| item.id.as_str()).collect();
+                let known_actions: BTreeSet<_> =
+                    active.actions.iter().map(|item| item.id.as_str()).collect();
                 for id in action_ids {
                     if !known_actions.contains(id.as_str()) {
                         return Err(IngestError::new(
@@ -466,7 +507,11 @@ impl LiveConversationAssembler {
         ids: &BTreeSet<String>,
         event: &ConversationEvent,
     ) -> Result<(), IngestError> {
-        let known: BTreeSet<_> = active.evidence.iter().map(|item| item.id.as_str()).collect();
+        let known: BTreeSet<_> = active
+            .evidence
+            .iter()
+            .map(|item| item.id.as_str())
+            .collect();
         for id in ids {
             if !known.contains(id.as_str()) {
                 return Err(IngestError::new(
@@ -479,9 +524,18 @@ impl LiveConversationAssembler {
         Ok(())
     }
 
-    fn apply(&mut self, event: &ConversationEvent) -> Result<Option<LiveWitnessSnapshot>, IngestError> {
-        if let ConversationEventPayload::HumanMessage { statement, objective, constraints } = &event.payload {
-            self.conversation_id.get_or_insert_with(|| event.conversation_id.clone());
+    fn apply(
+        &mut self,
+        event: &ConversationEvent,
+    ) -> Result<Option<LiveWitnessSnapshot>, IngestError> {
+        if let ConversationEventPayload::HumanMessage {
+            statement,
+            objective,
+            constraints,
+        } = &event.payload
+        {
+            self.conversation_id
+                .get_or_insert_with(|| event.conversation_id.clone());
             let authority = AuthorityState {
                 required: BTreeSet::new(),
                 granted: self.conversation_grants.clone(),
@@ -508,9 +562,16 @@ impl LiveConversationAssembler {
             return Ok(None);
         }
 
-        let active = self.active.as_mut().expect("preflight requires active turn");
+        let active = self
+            .active
+            .as_mut()
+            .expect("preflight requires active turn");
         match &event.payload {
-            ConversationEventPayload::AiProjection { interpretation, assumptions, ambiguities } => {
+            ConversationEventPayload::AiProjection {
+                interpretation,
+                assumptions,
+                ambiguities,
+            } => {
                 active.projection = AiProjection {
                     interpretation: interpretation.clone(),
                     assumptions: assumptions.clone(),
@@ -540,7 +601,13 @@ impl LiveConversationAssembler {
                 active.authority.granted.remove(capability);
                 self.conversation_grants.remove(capability);
             }
-            ConversationEventPayload::Evidence { id, kind, statement, source, status } => {
+            ConversationEventPayload::Evidence {
+                id,
+                kind,
+                statement,
+                source,
+                status,
+            } => {
                 active.evidence.push(EvidenceRecord {
                     id: id.clone(),
                     kind: *kind,
@@ -568,7 +635,13 @@ impl LiveConversationAssembler {
                     reversible: *reversible,
                 });
             }
-            ConversationEventPayload::Fracture { id, dimension, summary, severity, evidence_ids } => {
+            ConversationEventPayload::Fracture {
+                id,
+                dimension,
+                summary,
+                severity,
+                evidence_ids,
+            } => {
                 active.fractures.push(FractureRecord {
                     id: id.clone(),
                     dimension: *dimension,
@@ -577,14 +650,23 @@ impl LiveConversationAssembler {
                     evidence_ids: evidence_ids.clone(),
                 });
             }
-            ConversationEventPayload::Repair { fracture_id, summary, evidence_ids } => {
+            ConversationEventPayload::Repair {
+                fracture_id,
+                summary,
+                evidence_ids,
+            } => {
                 active.repairs.push(RepairRecord {
                     fracture_id: fracture_id.clone(),
                     summary: summary.clone(),
                     evidence_ids: evidence_ids.clone(),
                 });
             }
-            ConversationEventPayload::AiResponse { conclusion, recommendation, evidence_ids, action_ids } => {
+            ConversationEventPayload::AiResponse {
+                conclusion,
+                recommendation,
+                evidence_ids,
+                action_ids,
+            } => {
                 active.witness = WitnessRecord {
                     conclusion: conclusion.clone(),
                     recommendation: recommendation.clone(),
@@ -600,10 +682,17 @@ impl LiveConversationAssembler {
                         .map(|issue| format!("{}: {}", issue.code, issue.message))
                         .collect::<Vec<_>>()
                         .join("; ");
-                    return Err(IngestError::new("invalid_completed_transaction", details, Some(event)));
+                    return Err(IngestError::new(
+                        "invalid_completed_transaction",
+                        details,
+                        Some(event),
+                    ));
                 }
                 let transaction = self.active.take().expect("active transaction exists");
-                let change = self.previous.as_ref().map(|previous| transaction.diff_from(previous));
+                let change = self
+                    .previous
+                    .as_ref()
+                    .map(|previous| transaction.diff_from(previous));
                 return Ok(Some(LiveWitnessSnapshot {
                     protocol_version: HTP_LIVE_VERSION.to_string(),
                     transaction,

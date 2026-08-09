@@ -86,7 +86,10 @@ impl SignedWitnessEnvelope {
     ) -> Result<Self, SignatureError> {
         let key_id = key_id.into();
         if key_id.trim().is_empty() {
-            return Err(SignatureError::new("missing_key_id", "key_id must not be empty"));
+            return Err(SignatureError::new(
+                "missing_key_id",
+                "key_id must not be empty",
+            ));
         }
         let secret = parse_fixed_hex::<32>(secret_key_hex)
             .map_err(|message| SignatureError::new("invalid_signing_key", message))?;
@@ -129,10 +132,16 @@ impl SignedWitnessEnvelope {
     pub fn verify(&self) -> SignatureVerification {
         let mut issues = Vec::new();
         if self.signature_version != HTP_SIGNATURE_VERSION {
-            issues.push(format!("unsupported signature version {}", self.signature_version));
+            issues.push(format!(
+                "unsupported signature version {}",
+                self.signature_version
+            ));
         }
         if self.algorithm != HTP_SIGNATURE_ALGORITHM {
-            issues.push(format!("unsupported signature algorithm {}", self.algorithm));
+            issues.push(format!(
+                "unsupported signature algorithm {}",
+                self.algorithm
+            ));
         }
 
         let actual_content_hash = hash_json(&self.content);
@@ -172,7 +181,10 @@ impl SignedWitnessEnvelope {
         match (public_key, signature) {
             (Ok(key), Ok(signature_bytes)) if !expected_payload_bytes.is_empty() => {
                 let signature = Signature::from_bytes(&signature_bytes);
-                if key.verify_strict(&expected_payload_bytes, &signature).is_err() {
+                if key
+                    .verify_strict(&expected_payload_bytes, &signature)
+                    .is_err()
+                {
                     issues.push("ed25519 signature verification failed".to_string());
                 }
             }
@@ -198,15 +210,23 @@ impl SignedWitnessEnvelope {
         match self.profile {
             PublicationProfile::Public => {
                 if self.content.get("profile").and_then(Value::as_str) != Some("public") {
-                    issues.push("public envelope content does not declare public profile".to_string());
+                    issues.push(
+                        "public envelope content does not declare public profile".to_string(),
+                    );
                 }
-                if self.content.get("protocol_version").and_then(Value::as_str) != Some(HTP_LIVE_VERSION) {
+                if self.content.get("protocol_version").and_then(Value::as_str)
+                    != Some(HTP_LIVE_VERSION)
+                {
                     issues.push("public envelope content has wrong protocol version".to_string());
                 }
-                if self.content.get("witness_hash").and_then(Value::as_str) != Some(self.witness_hash.as_str()) {
+                if self.content.get("witness_hash").and_then(Value::as_str)
+                    != Some(self.witness_hash.as_str())
+                {
                     issues.push("public content witness hash does not match envelope".to_string());
                 }
-                if self.content.get("stream_root").and_then(Value::as_str) != Some(self.stream_root.as_str()) {
+                if self.content.get("stream_root").and_then(Value::as_str)
+                    != Some(self.stream_root.as_str())
+                {
                     issues.push("public content stream root does not match envelope".to_string());
                 }
             }
@@ -217,13 +237,19 @@ impl SignedWitnessEnvelope {
                             issues.push("private content has wrong protocol version".to_string());
                         }
                         if snapshot.witness_hash() != self.witness_hash {
-                            issues.push("private content witness hash does not match envelope".to_string());
+                            issues.push(
+                                "private content witness hash does not match envelope".to_string(),
+                            );
                         }
                         if snapshot.stream_root != self.stream_root {
-                            issues.push("private content stream root does not match envelope".to_string());
+                            issues.push(
+                                "private content stream root does not match envelope".to_string(),
+                            );
                         }
                     }
-                    Err(error) => issues.push(format!("private content is not a live snapshot: {error}")),
+                    Err(error) => {
+                        issues.push(format!("private content is not a live snapshot: {error}"))
+                    }
                 }
             }
         }
@@ -232,8 +258,9 @@ impl SignedWitnessEnvelope {
 
 pub fn publish_snapshot(snapshot: &LiveWitnessSnapshot, profile: PublicationProfile) -> Value {
     match profile {
-        PublicationProfile::Private => serde_json::to_value(snapshot)
-            .expect("LiveWitnessSnapshot serialization cannot fail"),
+        PublicationProfile::Private => {
+            serde_json::to_value(snapshot).expect("LiveWitnessSnapshot serialization cannot fail")
+        }
         PublicationProfile::Public => public_snapshot(snapshot),
     }
 }
@@ -257,7 +284,11 @@ fn public_snapshot(snapshot: &LiveWitnessSnapshot) -> Value {
         .actions
         .iter()
         .map(|record| {
-            let dimensions: BTreeSet<Dimension> = record.effects.iter().map(|effect| effect.dimension).collect();
+            let dimensions: BTreeSet<Dimension> = record
+                .effects
+                .iter()
+                .map(|effect| effect.dimension)
+                .collect();
             json!({
                 "id": record.id,
                 "description": record.description,

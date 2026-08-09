@@ -264,58 +264,130 @@ impl HumanAiTransaction {
                 &mut issues,
                 IssueSeverity::Error,
                 "unsupported_protocol_version",
-                format!("expected protocol_version {HTP_VERSION}, got {}", self.protocol_version),
+                format!(
+                    "expected protocol_version {HTP_VERSION}, got {}",
+                    self.protocol_version
+                ),
             );
         }
         if self.conversation_id.trim().is_empty() {
-            push_issue(&mut issues, IssueSeverity::Error, "missing_conversation_id", "conversation_id must not be empty".to_string());
+            push_issue(
+                &mut issues,
+                IssueSeverity::Error,
+                "missing_conversation_id",
+                "conversation_id must not be empty".to_string(),
+            );
         }
         if self.turn_id.trim().is_empty() {
-            push_issue(&mut issues, IssueSeverity::Error, "missing_turn_id", "turn_id must not be empty".to_string());
+            push_issue(
+                &mut issues,
+                IssueSeverity::Error,
+                "missing_turn_id",
+                "turn_id must not be empty".to_string(),
+            );
         }
         if self.need.objective.trim().is_empty() {
-            push_issue(&mut issues, IssueSeverity::Error, "missing_objective", "need.objective must not be empty".to_string());
+            push_issue(
+                &mut issues,
+                IssueSeverity::Error,
+                "missing_objective",
+                "need.objective must not be empty".to_string(),
+            );
         }
         if self.projection.interpretation.trim().is_empty() {
-            push_issue(&mut issues, IssueSeverity::Error, "missing_interpretation", "projection.interpretation must not be empty".to_string());
+            push_issue(
+                &mut issues,
+                IssueSeverity::Error,
+                "missing_interpretation",
+                "projection.interpretation must not be empty".to_string(),
+            );
         }
         if self.witness.conclusion.trim().is_empty() {
-            push_issue(&mut issues, IssueSeverity::Warning, "open_transaction", "witness.conclusion is empty; transaction remains open".to_string());
+            push_issue(
+                &mut issues,
+                IssueSeverity::Warning,
+                "open_transaction",
+                "witness.conclusion is empty; transaction remains open".to_string(),
+            );
         }
 
-        let evidence_ids = collect_unique_ids(self.evidence.iter().map(|record| record.id.as_str()), "evidence", &mut issues);
-        let action_ids = collect_unique_ids(self.actions.iter().map(|record| record.id.as_str()), "action", &mut issues);
-        let fracture_ids = collect_unique_ids(self.fractures.iter().map(|record| record.id.as_str()), "fracture", &mut issues);
+        let evidence_ids = collect_unique_ids(
+            self.evidence.iter().map(|record| record.id.as_str()),
+            "evidence",
+            &mut issues,
+        );
+        let action_ids = collect_unique_ids(
+            self.actions.iter().map(|record| record.id.as_str()),
+            "action",
+            &mut issues,
+        );
+        let fracture_ids = collect_unique_ids(
+            self.fractures.iter().map(|record| record.id.as_str()),
+            "fracture",
+            &mut issues,
+        );
 
         for evidence in &self.evidence {
             if evidence.statement.trim().is_empty() {
-                push_issue(&mut issues, IssueSeverity::Error, "empty_evidence_statement", format!("evidence {} has an empty statement", evidence.id));
+                push_issue(
+                    &mut issues,
+                    IssueSeverity::Error,
+                    "empty_evidence_statement",
+                    format!("evidence {} has an empty statement", evidence.id),
+                );
             }
             if evidence.source.trim().is_empty() {
-                push_issue(&mut issues, IssueSeverity::Error, "missing_evidence_source", format!("evidence {} has no observable source", evidence.id));
+                push_issue(
+                    &mut issues,
+                    IssueSeverity::Error,
+                    "missing_evidence_source",
+                    format!("evidence {} has no observable source", evidence.id),
+                );
             }
         }
 
         for evidence_id in &self.witness.evidence_ids {
             if !evidence_ids.contains(evidence_id) {
-                push_issue(&mut issues, IssueSeverity::Error, "unknown_witness_evidence", format!("witness references unknown evidence {evidence_id}"));
+                push_issue(
+                    &mut issues,
+                    IssueSeverity::Error,
+                    "unknown_witness_evidence",
+                    format!("witness references unknown evidence {evidence_id}"),
+                );
             }
         }
         for action_id in &self.witness.action_ids {
             if !action_ids.contains(action_id) {
-                push_issue(&mut issues, IssueSeverity::Error, "unknown_witness_action", format!("witness references unknown action {action_id}"));
+                push_issue(
+                    &mut issues,
+                    IssueSeverity::Error,
+                    "unknown_witness_action",
+                    format!("witness references unknown action {action_id}"),
+                );
             }
         }
 
         for action in &self.actions {
-            if matches!(action.status, ActionStatus::Authorized | ActionStatus::Executed) {
-                let missing: BTreeSet<_> = action.requires.difference(&self.authority.granted).cloned().collect();
+            if matches!(
+                action.status,
+                ActionStatus::Authorized | ActionStatus::Executed
+            ) {
+                let missing: BTreeSet<_> = action
+                    .requires
+                    .difference(&self.authority.granted)
+                    .cloned()
+                    .collect();
                 if !missing.is_empty() {
                     push_issue(
                         &mut issues,
                         IssueSeverity::Error,
                         "action_without_authority",
-                        format!("action {} is {:?} without grants: {}", action.id, action.status, join_set(&missing)),
+                        format!(
+                            "action {} is {:?} without grants: {}",
+                            action.id,
+                            action.status,
+                            join_set(&missing)
+                        ),
                     );
                 }
             }
@@ -324,23 +396,47 @@ impl HumanAiTransaction {
         for fracture in &self.fractures {
             for evidence_id in &fracture.evidence_ids {
                 if !evidence_ids.contains(evidence_id) {
-                    push_issue(&mut issues, IssueSeverity::Error, "unknown_fracture_evidence", format!("fracture {} references unknown evidence {evidence_id}", fracture.id));
+                    push_issue(
+                        &mut issues,
+                        IssueSeverity::Error,
+                        "unknown_fracture_evidence",
+                        format!(
+                            "fracture {} references unknown evidence {evidence_id}",
+                            fracture.id
+                        ),
+                    );
                 }
             }
         }
 
         for repair in &self.repairs {
             if !fracture_ids.contains(&repair.fracture_id) {
-                push_issue(&mut issues, IssueSeverity::Error, "repair_without_fracture", format!("repair references unknown fracture {}", repair.fracture_id));
+                push_issue(
+                    &mut issues,
+                    IssueSeverity::Error,
+                    "repair_without_fracture",
+                    format!("repair references unknown fracture {}", repair.fracture_id),
+                );
             }
             for evidence_id in &repair.evidence_ids {
                 if !evidence_ids.contains(evidence_id) {
-                    push_issue(&mut issues, IssueSeverity::Error, "unknown_repair_evidence", format!("repair for {} references unknown evidence {evidence_id}", repair.fracture_id));
+                    push_issue(
+                        &mut issues,
+                        IssueSeverity::Error,
+                        "unknown_repair_evidence",
+                        format!(
+                            "repair for {} references unknown evidence {evidence_id}",
+                            repair.fracture_id
+                        ),
+                    );
                 }
             }
         }
 
-        if self.evidence.iter().any(|record| record.status == ClaimStatus::Contradicted)
+        if self
+            .evidence
+            .iter()
+            .any(|record| record.status == ClaimStatus::Contradicted)
             && self.fractures.is_empty()
         {
             push_issue(
@@ -352,7 +448,9 @@ impl HumanAiTransaction {
         }
 
         ValidationReport {
-            valid: !issues.iter().any(|issue| issue.severity == IssueSeverity::Error),
+            valid: !issues
+                .iter()
+                .any(|issue| issue.severity == IssueSeverity::Error),
             issues,
         }
     }
@@ -368,20 +466,46 @@ impl HumanAiTransaction {
 
     pub fn diff_from(&self, previous: &Self) -> ChangeSummary {
         let dimensional = self.dimensional_change_from(previous);
-        let previous_evidence: BTreeSet<_> = previous.evidence.iter().map(|item| item.id.clone()).collect();
-        let current_evidence: BTreeSet<_> = self.evidence.iter().map(|item| item.id.clone()).collect();
-        let previous_fractures: BTreeSet<_> = previous.fractures.iter().map(|item| item.id.clone()).collect();
-        let current_fractures: BTreeSet<_> = self.fractures.iter().map(|item| item.id.clone()).collect();
+        let previous_evidence: BTreeSet<_> = previous
+            .evidence
+            .iter()
+            .map(|item| item.id.clone())
+            .collect();
+        let current_evidence: BTreeSet<_> =
+            self.evidence.iter().map(|item| item.id.clone()).collect();
+        let previous_fractures: BTreeSet<_> = previous
+            .fractures
+            .iter()
+            .map(|item| item.id.clone())
+            .collect();
+        let current_fractures: BTreeSet<_> =
+            self.fractures.iter().map(|item| item.id.clone()).collect();
         let current_repaired = self.repaired_fracture_ids();
 
         ChangeSummary {
             conclusion_changed: previous.witness.conclusion != self.witness.conclusion,
             previous_conclusion: previous.witness.conclusion.clone(),
             current_conclusion: self.witness.conclusion.clone(),
-            authority_added: self.authority.granted.difference(&previous.authority.granted).cloned().collect(),
-            authority_removed: previous.authority.granted.difference(&self.authority.granted).cloned().collect(),
-            new_evidence: current_evidence.difference(&previous_evidence).cloned().collect(),
-            new_fractures: current_fractures.difference(&previous_fractures).cloned().collect(),
+            authority_added: self
+                .authority
+                .granted
+                .difference(&previous.authority.granted)
+                .cloned()
+                .collect(),
+            authority_removed: previous
+                .authority
+                .granted
+                .difference(&self.authority.granted)
+                .cloned()
+                .collect(),
+            new_evidence: current_evidence
+                .difference(&previous_evidence)
+                .cloned()
+                .collect(),
+            new_fractures: current_fractures
+                .difference(&previous_fractures)
+                .cloned()
+                .collect(),
             resolved_fractures: previous_fractures
                 .iter()
                 .filter(|id| !current_fractures.contains(*id) || current_repaired.contains(*id))
@@ -397,16 +521,22 @@ impl HumanAiTransaction {
             TranslationLevel::Plain => self.project_plain(previous),
             TranslationLevel::Informed => self.project_informed(previous),
             TranslationLevel::Expert => self.project_expert(previous),
-            TranslationLevel::Machine => serde_json::to_value(self).expect("HumanAiTransaction serialization cannot fail"),
+            TranslationLevel::Machine => {
+                serde_json::to_value(self).expect("HumanAiTransaction serialization cannot fail")
+            }
         }
     }
 
     fn project_plain(&self, previous: Option<&Self>) -> Value {
-        let unknowns: Vec<_> = self.evidence.iter()
+        let unknowns: Vec<_> = self
+            .evidence
+            .iter()
             .filter(|item| item.status == ClaimStatus::Unknown)
             .map(|item| item.statement.clone())
             .collect();
-        let unresolved: Vec<_> = self.unresolved_fractures().into_iter()
+        let unresolved: Vec<_> = self
+            .unresolved_fractures()
+            .into_iter()
             .map(|fracture| fracture.summary.clone())
             .collect();
 
@@ -459,16 +589,25 @@ impl HumanAiTransaction {
     }
 
     fn repaired_fracture_ids(&self) -> BTreeSet<String> {
-        self.repairs.iter().map(|repair| repair.fracture_id.clone()).collect()
+        self.repairs
+            .iter()
+            .map(|repair| repair.fracture_id.clone())
+            .collect()
     }
 
     fn unresolved_fractures(&self) -> Vec<&FractureRecord> {
         let repaired = self.repaired_fracture_ids();
-        self.fractures.iter().filter(|fracture| !repaired.contains(&fracture.id)).collect()
+        self.fractures
+            .iter()
+            .filter(|fracture| !repaired.contains(&fracture.id))
+            .collect()
     }
 }
 
-fn portable_dimensional_change(previous: &HumanAiTransaction, current: &HumanAiTransaction) -> DimensionalChange {
+fn portable_dimensional_change(
+    previous: &HumanAiTransaction,
+    current: &HumanAiTransaction,
+) -> DimensionalChange {
     let mut changed: BTreeMap<Dimension, BTreeSet<String>> = BTreeMap::new();
     let transaction_boundary = format!("transaction:{}", current.conversation_id);
     let conversation_boundary = format!("conversation:{}", current.conversation_id);
@@ -490,15 +629,19 @@ fn portable_dimensional_change(previous: &HumanAiTransaction, current: &HumanAiT
         &current.witness.recommendation,
     ));
     if previous_semantic != current_semantic {
-        changed.entry(Dimension::Semantic).or_default().extend([
-            transaction_boundary.clone(),
-            "need".to_string(),
-        ]);
+        changed
+            .entry(Dimension::Semantic)
+            .or_default()
+            .extend([transaction_boundary.clone(), "need".to_string()]);
     }
 
     if previous.authority != current.authority {
         let mut boundaries = BTreeSet::new();
-        for capability in previous.authority.required.union(&current.authority.required) {
+        for capability in previous
+            .authority
+            .required
+            .union(&current.authority.required)
+        {
             boundaries.insert(format!("required:{capability}"));
         }
         for capability in previous.authority.granted.union(&current.authority.granted) {
@@ -514,23 +657,33 @@ fn portable_dimensional_change(previous: &HumanAiTransaction, current: &HumanAiT
     }
 
     if previous.state() != current.state() {
-        changed.entry(Dimension::State).or_default().insert(conversation_boundary.clone());
+        changed
+            .entry(Dimension::State)
+            .or_default()
+            .insert(conversation_boundary.clone());
     }
 
     let previous_resources = aggregate_resources(previous);
     let current_resources = aggregate_resources(current);
     if previous_resources != current_resources {
-        let keys: BTreeSet<_> = previous_resources.keys().chain(current_resources.keys()).cloned().collect();
+        let keys: BTreeSet<_> = previous_resources
+            .keys()
+            .chain(current_resources.keys())
+            .cloned()
+            .collect();
         changed.insert(
             Dimension::Resource,
-            keys.into_iter().map(|key| format!("resource:{key}")).collect(),
+            keys.into_iter()
+                .map(|key| format!("resource:{key}"))
+                .collect(),
         );
     }
 
     let previous_security = effect_boundaries(previous, Dimension::Security);
     let current_security = effect_boundaries(current, Dimension::Security);
     if previous_security != current_security {
-        let boundaries = previous_security.union(&current_security)
+        let boundaries = previous_security
+            .union(&current_security)
             .map(|boundary| format!("dep:{boundary}"))
             .collect();
         changed.insert(Dimension::Security, boundaries);
@@ -539,13 +692,29 @@ fn portable_dimensional_change(previous: &HumanAiTransaction, current: &HumanAiT
     let previous_physical = effect_boundaries(previous, Dimension::Physical);
     let current_physical = effect_boundaries(current, Dimension::Physical);
     if previous_physical != current_physical {
-        changed.entry(Dimension::Physical).or_default().insert(conversation_boundary.clone());
+        changed
+            .entry(Dimension::Physical)
+            .or_default()
+            .insert(conversation_boundary.clone());
     }
 
-    let previous_frequency = (previous.evidence.len(), previous.actions.len(), previous.fractures.len(), previous.repairs.len());
-    let current_frequency = (current.evidence.len(), current.actions.len(), current.fractures.len(), current.repairs.len());
+    let previous_frequency = (
+        previous.evidence.len(),
+        previous.actions.len(),
+        previous.fractures.len(),
+        previous.repairs.len(),
+    );
+    let current_frequency = (
+        current.evidence.len(),
+        current.actions.len(),
+        current.fractures.len(),
+        current.repairs.len(),
+    );
     if previous_frequency != current_frequency {
-        changed.entry(Dimension::Frequency).or_default().insert(conversation_boundary.clone());
+        changed
+            .entry(Dimension::Frequency)
+            .or_default()
+            .insert(conversation_boundary.clone());
     }
 
     let previous_lineage = hash_json(&(
@@ -563,7 +732,10 @@ fn portable_dimensional_change(previous: &HumanAiTransaction, current: &HumanAiT
         &current.witness.action_ids,
     ));
     if previous_lineage != current_lineage {
-        changed.entry(Dimension::Lineage).or_default().insert(format!("lineage:{}", current.conversation_id));
+        changed
+            .entry(Dimension::Lineage)
+            .or_default()
+            .insert(format!("lineage:{}", current.conversation_id));
     }
 
     DimensionalChange::from_changed(changed)
@@ -571,7 +743,11 @@ fn portable_dimensional_change(previous: &HumanAiTransaction, current: &HumanAiT
 
 fn aggregate_resources(transaction: &HumanAiTransaction) -> BTreeMap<String, i64> {
     let mut resources = BTreeMap::new();
-    for action in transaction.actions.iter().filter(|action| action.status == ActionStatus::Executed) {
+    for action in transaction
+        .actions
+        .iter()
+        .filter(|action| action.status == ActionStatus::Executed)
+    {
         for (key, delta) in &action.resource_delta {
             *resources.entry(key.clone()).or_insert(0) += delta;
         }
@@ -580,7 +756,9 @@ fn aggregate_resources(transaction: &HumanAiTransaction) -> BTreeMap<String, i64
 }
 
 fn effect_boundaries(transaction: &HumanAiTransaction, dimension: Dimension) -> BTreeSet<String> {
-    transaction.actions.iter()
+    transaction
+        .actions
+        .iter()
         .filter(|action| action.status == ActionStatus::Executed)
         .flat_map(|action| action.effects.iter())
         .filter(|effect| effect.dimension == dimension)
@@ -588,8 +766,17 @@ fn effect_boundaries(transaction: &HumanAiTransaction, dimension: Dimension) -> 
         .collect()
 }
 
-fn push_issue(issues: &mut Vec<ProtocolIssue>, severity: IssueSeverity, code: &str, message: String) {
-    issues.push(ProtocolIssue { severity, code: code.to_string(), message });
+fn push_issue(
+    issues: &mut Vec<ProtocolIssue>,
+    severity: IssueSeverity,
+    code: &str,
+    message: String,
+) {
+    issues.push(ProtocolIssue {
+        severity,
+        code: code.to_string(),
+        message,
+    });
 }
 
 fn collect_unique_ids<'a>(

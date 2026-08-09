@@ -28,11 +28,15 @@ fn run() -> Result<(), String> {
 
     if let Some(previous) = &previous {
         if previous.conversation_id != current.conversation_id {
-            return Err("previous and current transactions use different conversation_id values".into());
+            return Err(
+                "previous and current transactions use different conversation_id values".into(),
+            );
         }
         let previous_hash = previous.witness_hash();
         if current.predecessor_witness.as_deref() != Some(previous_hash.as_str()) {
-            eprintln!("warning: predecessor_witness does not match the supplied previous transaction");
+            eprintln!(
+                "warning: predecessor_witness does not match the supplied previous transaction"
+            );
         }
     }
 
@@ -69,10 +73,15 @@ fn parse_args(args: impl Iterator<Item = String>) -> Result<Cli, String> {
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--previous" => {
-                previous = Some(args.next().ok_or_else(|| "--previous requires a path".to_string())?);
+                previous = Some(
+                    args.next()
+                        .ok_or_else(|| "--previous requires a path".to_string())?,
+                );
             }
             "--level" => {
-                let value = args.next().ok_or_else(|| "--level requires a value".to_string())?;
+                let value = args
+                    .next()
+                    .ok_or_else(|| "--level requires a value".to_string())?;
                 level = parse_level(&value)?;
             }
             "--strict" => strict = true,
@@ -105,14 +114,18 @@ fn parse_level(value: &str) -> Result<TranslationLevel, String> {
         "informed" => Ok(TranslationLevel::Informed),
         "expert" => Ok(TranslationLevel::Expert),
         "machine" => Ok(TranslationLevel::Machine),
-        _ => Err(format!("unknown translation level {value}; expected plain, informed, expert, or machine")),
+        _ => Err(format!(
+            "unknown translation level {value}; expected plain, informed, expert, or machine"
+        )),
     }
 }
 
 fn read_transaction(path: &str) -> Result<HumanAiTransaction, String> {
     let content = if path == "-" {
         let mut input = String::new();
-        io::stdin().read_to_string(&mut input).map_err(|error| format!("cannot read stdin: {error}"))?;
+        io::stdin()
+            .read_to_string(&mut input)
+            .map_err(|error| format!("cannot read stdin: {error}"))?;
         input
     } else {
         fs::read_to_string(path).map_err(|error| format!("cannot read {path}: {error}"))?

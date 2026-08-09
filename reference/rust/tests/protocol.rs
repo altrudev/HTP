@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use htp_reference::{
-    ActionRecord, ActionStatus, AiProjection, AuthorityState, ClaimStatus, Dimension,
-    EvidenceKind, EvidenceRecord, FractureRecord, FractureSeverity, HumanAiTransaction, HumanNeed,
-    ProtocolState, RepairRecord, TranslationLevel, WitnessRecord, HTP_VERSION,
+    ActionRecord, ActionStatus, AiProjection, AuthorityState, ClaimStatus, Dimension, EvidenceKind,
+    EvidenceRecord, FractureRecord, FractureSeverity, HumanAiTransaction, HumanNeed, ProtocolState,
+    RepairRecord, TranslationLevel, WitnessRecord, HTP_VERSION,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -59,9 +59,18 @@ fn plain_projection_separates_need_interpretation_and_unknowns() {
     });
 
     let projection = transaction.project(TranslationLevel::Plain, None);
-    assert_eq!(projection["you_want"], "Decide whether installing the update creates unacceptable risk");
-    assert_eq!(projection["ai_understood"], "Evaluate compatibility, security, and rollback risk");
-    assert_eq!(projection["unknowns"][0], "Plugin compatibility has not yet been verified");
+    assert_eq!(
+        projection["you_want"],
+        "Decide whether installing the update creates unacceptable risk"
+    );
+    assert_eq!(
+        projection["ai_understood"],
+        "Evaluate compatibility, security, and rollback risk"
+    );
+    assert_eq!(
+        projection["unknowns"][0],
+        "Plugin compatibility has not yet been verified"
+    );
 }
 
 #[test]
@@ -77,11 +86,17 @@ fn executed_action_without_authority_is_invalid() {
         resource_delta: BTreeMap::new(),
         reversible: Some(true),
     });
-    transaction.witness.action_ids.insert("a-install".to_string());
+    transaction
+        .witness
+        .action_ids
+        .insert("a-install".to_string());
 
     let report = transaction.validate();
     assert!(!report.valid);
-    assert!(report.issues.iter().any(|issue| issue.code == "action_without_authority"));
+    assert!(report
+        .issues
+        .iter()
+        .any(|issue| issue.code == "action_without_authority"));
     assert_eq!(transaction.state(), ProtocolState::AwaitingAuthority);
 }
 
@@ -118,16 +133,30 @@ fn changed_answer_produces_portable_dimensional_change() {
         source: "Plugin X compatibility documentation".to_string(),
         status: ClaimStatus::Established,
     });
-    current.witness.evidence_ids.insert("e-plugin-doc".to_string());
-    current.witness.conclusion = "Do not install yet because Plugin X is not compatible with the new version".to_string();
+    current
+        .witness
+        .evidence_ids
+        .insert("e-plugin-doc".to_string());
+    current.witness.conclusion =
+        "Do not install yet because Plugin X is not compatible with the new version".to_string();
     current.witness.recommendation = Some("Wait for a compatible Plugin X release".to_string());
 
     let dimensional = current.dimensional_change_from(&previous);
-    assert!(dimensional.changed_dimensions.contains_key(&Dimension::Semantic));
-    assert!(dimensional.changed_dimensions.contains_key(&Dimension::Frequency));
-    assert!(dimensional.changed_dimensions.contains_key(&Dimension::Lineage));
-    assert!(dimensional.conserved_dimensions.contains(&Dimension::Authority));
-    assert!(dimensional.conserved_dimensions.contains(&Dimension::Resource));
+    assert!(dimensional
+        .changed_dimensions
+        .contains_key(&Dimension::Semantic));
+    assert!(dimensional
+        .changed_dimensions
+        .contains_key(&Dimension::Frequency));
+    assert!(dimensional
+        .changed_dimensions
+        .contains_key(&Dimension::Lineage));
+    assert!(dimensional
+        .conserved_dimensions
+        .contains(&Dimension::Authority));
+    assert!(dimensional
+        .conserved_dimensions
+        .contains(&Dimension::Resource));
 
     let change = current.diff_from(&previous);
     assert!(change.conclusion_changed);
@@ -137,5 +166,8 @@ fn changed_answer_produces_portable_dimensional_change() {
 #[test]
 fn witness_hash_is_deterministic() {
     let transaction = base_transaction();
-    assert_eq!(transaction.witness_hash(), transaction.clone().witness_hash());
+    assert_eq!(
+        transaction.witness_hash(),
+        transaction.clone().witness_hash()
+    );
 }
