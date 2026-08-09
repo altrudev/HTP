@@ -34,6 +34,28 @@ jobs:
       - name: Release build
         run: cargo build --workspace --release --locked
 
+      - name: Run public live example
+        run: |
+          set -euo pipefail
+          target/release/htp-live \
+            --trust-policy examples/trust-policy.json \
+            --profile public \
+            --unsigned \
+            examples/events.jsonl > /tmp/htp-example.jsonl
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lines = [line for line in Path('/tmp/htp-example.jsonl').read_text().splitlines() if line.strip()]
+          assert len(lines) == 1, f'expected one completed witness, got {len(lines)}'
+          record = json.loads(lines[0])
+          assert record['unsigned'] is True
+          assert record['profile'] == 'public'
+          assert record['content']['protocol_version'] == 'ddc-htp/0.2'
+          assert record['content']['state'] == 'awaiting_authority'
+          assert record['content']['authority']['required'] == ['system.install']
+          assert record['content']['authority']['granted'] == []
+          PY
+
   public-artifacts:
     name: Schemas and browser projector
     runs-on: ubuntu-latest
@@ -47,6 +69,10 @@ jobs:
           while IFS= read -r -d '' file; do
             python -m json.tool "$file" >/dev/null
           done < <(find schemas -type f -name '*.json' -print0)
+          python -m json.tool examples/trust-policy.json >/dev/null
+          while IFS= read -r line; do
+            [ -z "$line" ] || python -c 'import json,sys; json.loads(sys.stdin.read())' <<<"$line"
+          done < examples/events.jsonl
 
       - name: Check browser JavaScript syntax
         run: |
