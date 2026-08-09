@@ -101,8 +101,11 @@ jobs:
       - name: Install stable Rust for dependency resolution
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Resolve dependency graph with current Cargo
-        run: cargo +stable generate-lockfile
+      - name: Resolve dependency graph in Cargo 1.78-readable format
+        run: |
+          cargo +stable generate-lockfile
+          sed -i 's/^version = 4$/version = 3/' Cargo.lock
+          grep -q '^version = 3$' Cargo.lock
 
       - name: Install Rust 1.78
         uses: dtolnay/rust-toolchain@master
