@@ -1,0 +1,107 @@
+name: HTP Reference CI
+
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: Reference implementation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace --all-targets --verbose
+
+      - name: Release build
+        run: cargo build --workspace --release
+
+  public-artifacts:
+    name: Schemas and browser projector
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check JSON schema syntax
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            python -m json.tool "$file" >/dev/null
+          done < <(find schemas -type f -name '*.json' -print0)
+
+      - name: Check browser JavaScript syntax
+        run: |
+          node --check apps/human-translator/app.js
+          node --check apps/human-translator/htp-v02.js
+
+      - name: Verify local-only browser runtime
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+
+          class RuntimeRefs(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.remote = []
+
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  if tag == "script":
+                      value = attrs.get("src", "")
+                  elif tag == "link" and attrs.get("rel") == "stylesheet":
+                      value = attrs.get("href", "")
+                  else:
+                      return
+                  if value.startswith(("http://", "https://", "//")):
+                      self.remote.append(value)
+
+          page = Path("apps/human-translator/index.html").read_text(encoding="utf-8")
+          parser = RuntimeRefs()
+          parser.feed(page)
+          if parser.remote:
+              raise SystemExit(f"remote runtime dependencies are forbidden: {parser.remote}")
+          PY
+
+      - name: Verify public/private architecture boundary
+        run: |
+          set -euo pipefail
+          test -f spec/HTP-v0.2.md
+          test -f reference/rust/src/dimension.rs
+          ! grep -R --line-number -E 'pub fn derive_closure|struct DtcClosure|struct Topology|CrystallineEngine|NativeWorld' reference/rust
+          grep -q 'private_crystalline_closure_included' reference/rust/src/protocol.rs
+          grep -q 'HTP 0.2 live' apps/human-translator/index.html
+
+  msrv:
+    name: Rust 1.78 shipped targets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.78
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.78.0
+
+      - name: Check library and binaries
+        run: cargo +1.78.0 check -p htp-reference --lib --bins
