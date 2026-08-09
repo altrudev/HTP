@@ -10,44 +10,6 @@ permissions:
   contents: read
 
 jobs:
-  normalize-extraction:
-    name: Normalize extraction branch
-    if: github.ref == 'refs/heads/feature/independent-htp-0.2-final'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: feature/independent-htp-0.2-final
-
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-
-      - name: Format and lock
-        run: |
-          set -euo pipefail
-          cargo fmt --all
-          cargo generate-lockfile
-          sed -i 's/^version = 4$/version = 3/' Cargo.lock
-          grep -q '^version = 3$' Cargo.lock
-
-      - name: Commit normalized source if needed
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Cargo.lock reference/rust
-          if git diff --cached --quiet; then
-            echo 'Source already normalized.'
-          else
-            git commit -m 'Normalize Rust source and lock dependencies'
-            git push origin HEAD:feature/independent-htp-0.2-final
-          fi
-
   reference:
     name: Reference implementation
     runs-on: ubuntu-latest
@@ -60,17 +22,17 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Normalize Rust formatting for validation
-        run: cargo fmt --all
+      - name: Check Rust formatting
+        run: cargo fmt --all -- --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Test
-        run: cargo test --workspace --all-targets --verbose
+        run: cargo test --workspace --all-targets --locked --verbose
 
       - name: Release build
-        run: cargo build --workspace --release
+        run: cargo build --workspace --release --locked
 
   public-artifacts:
     name: Schemas and browser projector
@@ -136,14 +98,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Install stable Rust for dependency resolution
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Resolve dependency graph in Cargo 1.78-readable format
-        run: |
-          cargo +stable generate-lockfile
-          sed -i 's/^version = 4$/version = 3/' Cargo.lock
-          grep -q '^version = 3$' Cargo.lock
+      - name: Verify Cargo 1.78-readable lockfile
+        run: grep -q '^version = 3$' Cargo.lock
 
       - name: Install Rust 1.78
         uses: dtolnay/rust-toolchain@master
