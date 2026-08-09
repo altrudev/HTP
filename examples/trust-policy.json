@@ -1,0 +1,9 @@
+{
+  "sources": {
+    "human-ui": "human",
+    "assistant-runtime": "assistant",
+    "local-system": "system",
+    "browser-tool": "tool",
+    "policy-engine": "policy"
+  }
+}
