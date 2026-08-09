@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ddc:htp:0.2:event",
+  "title": "DDC HTP v0.2 Live Conversation Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "source_id", "conversation_id", "turn_id", "actor", "payload"],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 },
+    "source_id": { "type": "string", "minLength": 1 },
+    "conversation_id": { "type": "string", "minLength": 1 },
+    "turn_id": { "type": "string", "minLength": 1 },
+    "actor": { "enum": ["human", "assistant", "tool", "system", "policy"] },
+    "payload": {
+      "oneOf": [
+        { "$ref": "#/$defs/humanMessage" },
+        { "$ref": "#/$defs/aiProjection" },
+        { "$ref": "#/$defs/authorityRequired" },
+        { "$ref": "#/$defs/authorityGrant" },
+        { "$ref": "#/$defs/authorityDeny" },
+        { "$ref": "#/$defs/authorityRevoke" },
+        { "$ref": "#/$defs/evidence" },
+        { "$ref": "#/$defs/action" },
+        { "$ref": "#/$defs/fracture" },
+        { "$ref": "#/$defs/repair" },
+        { "$ref": "#/$defs/aiResponse" }
+      ]
+    }
+  },
+  "$defs": {
+    "stringSet": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "dimension": {
+      "enum": ["semantic", "authority", "state", "resource", "security", "physical", "frequency", "lineage"]
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "boundary"],
+      "properties": {
+        "dimension": { "$ref": "#/$defs/dimension" },
+        "boundary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "humanMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "statement", "objective"],
+      "properties": {
+        "type": { "const": "human_message" },
+        "statement": { "type": "string" },
+        "objective": { "type": "string", "minLength": 1 },
+        "constraints": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    },
+    "aiProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "interpretation"],
+      "properties": {
+        "type": { "const": "ai_projection" },
+        "interpretation": { "type": "string", "minLength": 1 },
+        "assumptions": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "ambiguities": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    },
+    "authorityRequired": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "capability"],
+      "properties": {
+        "type": { "const": "authority_required" },
+        "capability": { "type": "string", "minLength": 1 }
+      }
+    },
+    "authorityGrant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "capability", "scope"],
+      "properties": {
+        "type": { "const": "authority_grant" },
+        "capability": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["turn", "conversation"] }
+      }
+    },
+    "authorityDeny": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "capability", "scope"],
+      "properties": {
+        "type": { "const": "authority_deny" },
+        "capability": { "type": "string", "minLength": 1 },
+        "scope": { "enum": ["turn", "conversation"] }
+      }
+    },
+    "authorityRevoke": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "capability"],
+      "properties": {
+        "type": { "const": "authority_revoke" },
+        "capability": { "type": "string", "minLength": 1 }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "kind", "statement", "source", "status"],
+      "properties": {
+        "type": { "const": "evidence" },
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["user_statement", "source", "tool_result", "system_observation", "calculation"] },
+        "statement": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["established", "inferred", "unknown", "contradicted"] }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "description", "status"],
+      "properties": {
+        "type": { "const": "action" },
+        "id": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "minLength": 1 },
+        "requires": { "$ref": "#/$defs/stringSet", "default": [] },
+        "status": { "enum": ["proposed", "authorized", "executed", "failed", "skipped"] },
+        "effects": { "type": "array", "items": { "$ref": "#/$defs/effect" }, "uniqueItems": true, "default": [] },
+        "resource_delta": { "type": "object", "additionalProperties": { "type": "integer" }, "default": {} },
+        "reversible": { "type": ["boolean", "null"], "default": null }
+      }
+    },
+    "fracture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "dimension", "summary", "severity"],
+      "properties": {
+        "type": { "const": "fracture" },
+        "id": { "type": "string", "minLength": 1 },
+        "dimension": { "$ref": "#/$defs/dimension" },
+        "summary": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["advisory", "warning", "blocking"] },
+        "evidence_ids": { "$ref": "#/$defs/stringSet", "default": [] }
+      }
+    },
+    "repair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "fracture_id", "summary"],
+      "properties": {
+        "type": { "const": "repair" },
+        "fracture_id": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 1 },
+        "evidence_ids": { "$ref": "#/$defs/stringSet", "default": [] }
+      }
+    },
+    "aiResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "conclusion"],
+      "properties": {
+        "type": { "const": "ai_response" },
+        "conclusion": { "type": "string" },
+        "recommendation": { "type": ["string", "null"], "default": null },
+        "evidence_ids": { "$ref": "#/$defs/stringSet", "default": [] },
+        "action_ids": { "$ref": "#/$defs/stringSet", "default": [] }
+      }
+    }
+  }
+}
