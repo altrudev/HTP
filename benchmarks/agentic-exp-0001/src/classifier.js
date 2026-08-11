@@ -94,7 +94,6 @@ function classifyChange(previous, current) {
   const currentSecurity = effectBoundaries(current, 'security');
   if (!sameArray(previousSecurity, currentSecurity)) {
     const boundaries = canonicalSet([...previousSecurity, ...currentSecurity].map((boundary) => `dep:${boundary}`));
-    // EXP-0001 contains one deliberate semantic regression in this classification path.
     changed.physical = boundaries;
   }
 
