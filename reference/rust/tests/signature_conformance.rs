@@ -16,7 +16,8 @@ fn canonical_public_signature_vector_verifies() {
         vector.get("vector_id").and_then(Value::as_str),
         Some("htp-signature-v0.2-ed25519-public-01")
     );
-    assert_eq!(vector.get("test_key_only").and_then(Value::as_bool), Some(true));
+    assert_eq!(vector.get("test_vector_only").and_then(Value::as_bool), Some(true));
+    assert!(vector.get("test_secret_key_hex").is_none());
 
     let expected = vector.get("expected").expect("vector expected bindings");
     let envelope: SignedWitnessEnvelope = serde_json::from_value(
