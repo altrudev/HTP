@@ -2,8 +2,7 @@
   "schema": "ddc-htp/conformance-signature-vector/0.1",
   "vector_id": "htp-signature-v0.2-ed25519-public-01",
   "purpose": "Cross-language verification vector for the HTP 0.2 public signed-witness envelope.",
-  "test_key_only": true,
-  "test_secret_key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "test_vector_only": true,
   "expected": {
     "key_id": "conformance-key-01",
     "public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
